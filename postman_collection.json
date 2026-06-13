@@ -258,6 +258,47 @@
       ]
     },
     {
+      "name": "Ideas",
+      "item": [
+        {
+          "name": "Generate Business Ideas (no scheme)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/ideas",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "ideas" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locality\": \"Ahmedabad, Gujarat\",\n  \"budget\": 500000\n}"
+            },
+            "description": "Returns 5 AI-generated business ideas for the given locality and budget. Each idea includes applicable government schemes from the database."
+          }
+        },
+        {
+          "name": "Generate Business Ideas (with scheme)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/ideas",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "ideas" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locality\": \"Pune, Maharashtra\",\n  \"budget\": 1000000,\n  \"schemeId\": \"{{schemeId}}\"\n}"
+            },
+            "description": "Same as above but ideas are aligned toward the specified scheme UUID. Obtain a valid schemeId from GET /schemes."
+          }
+        }
+      ]
+    },
+    {
       "name": "Health",
       "item": [
         {
@@ -300,6 +341,12 @@
     {
       "key": "token",
       "value": "",
+      "type": "string"
+    },
+    {
+      "key": "schemeId",
+      "value": "",
+      "description": "A valid scheme UUID from GET /schemes — used by the Ideas with scheme request",
       "type": "string"
     }
   ]
