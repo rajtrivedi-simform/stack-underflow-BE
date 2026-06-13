@@ -7,6 +7,7 @@ const SAFE_SELECT = {
   id: true,
   email: true,
   phone: true,
+  name: true,
   role: true,
   createdAt: true,
   updatedAt: true,
@@ -36,6 +37,7 @@ export class UsersService {
     }
 
     const data: Record<string, unknown> = {};
+    if (dto.name !== undefined) data.name = dto.name;
     if (dto.email) data.email = dto.email;
     if (dto.phone) data.phone = dto.phone;
     if (dto.password) data.passwordHash = await bcrypt.hash(dto.password, 12);

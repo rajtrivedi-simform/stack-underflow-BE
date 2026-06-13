@@ -37,17 +37,17 @@ describe('AuthService', () => {
   describe('register', () => {
     it('should create user and return tokens', async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
-      mockPrisma.user.create.mockResolvedValue({ id: 'u1', email: 'e@e.com', phone: '+91123', role: 'USER' });
+      mockPrisma.user.create.mockResolvedValue({ id: 'u1', name: 'John Doe', email: 'e@e.com', phone: '+91123', role: 'USER' });
       mockPrisma.user.update.mockResolvedValue({});
 
-      const result = await service.register({ email: 'e@e.com', phone: '+91123', password: 'password123' });
+      const result = await service.register({ name: 'John Doe', email: 'e@e.com', phone: '+91123', password: 'password123' });
       expect(result).toHaveProperty('accessToken');
       expect(mockPrisma.user.create).toHaveBeenCalled();
     });
 
     it('should throw ConflictException if email/phone exists', async () => {
       mockPrisma.user.findFirst.mockResolvedValue({ id: 'existing' });
-      await expect(service.register({ email: 'e@e.com', phone: '+91123', password: 'password123' })).rejects.toThrow(ConflictException);
+      await expect(service.register({ name: 'John Doe', email: 'e@e.com', phone: '+91123', password: 'password123' })).rejects.toThrow(ConflictException);
     });
   });
 
