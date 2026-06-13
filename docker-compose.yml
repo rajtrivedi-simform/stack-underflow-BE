@@ -1,0 +1,38 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      target: builder
+    command: npm run start:dev
+    ports:
+      - '${HOST_PORT:-3001}:3000'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # No host port binding — app reaches Redis via internal Docker network (redis://redis:6379).
+    # Uncomment the line below only if you need direct host access (e.g. redis-cli from your laptop).
+    # ports:
+    #   - '6380:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped

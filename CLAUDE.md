@@ -1,266 +1,70 @@
-# VyaparSetu — Backend Instructions
+# VyaparSetu Backend
 
-## Stack
-NestJS 10 · TypeScript (strict) · Prisma · PostgreSQL · ioredis · OpenAI SDK · Winston · Zod
+NestJS 10 + Neon DB (PostgreSQL) + Prisma ORM + Redis + OpenAI GPT-4o + Winston + Swagger.
 
----
+## Key commands
+- `npm run start:dev` — hot-reload dev server (port 3000)
+- `npm run build` — compile to dist/
+- `npm run test` — unit tests (Jest)
+- `npm run test:cov` — coverage report
+- `npx prisma migrate dev` — apply schema changes as a new migration
+- `npx prisma generate` — regenerate Prisma client after schema changes
+- `npm run prisma:seed` — seed schemes + startup funding from CSVs in prisma/data/
+- `docker-compose up` — start app + postgres + redis
 
-## Agent behaviour
+## Architecture
+- Global modules (auto-available everywhere without importing): PrismaModule, RedisModule, LoggerModule, ConfigModule
+- Feature modules live under src/ (businesses, startups, schemes, match, compliance, documents, pdf, applications, regulatory-updates, insights, cleanup, health)
+- Auth is JWT-required globally via JwtAuthGuard; use @Public() to opt out
+- @Public() routes: /api/v1/auth/*, /api/v1/schemes (GET), /api/v1/regulatory-updates (GET), /api/v1/insights/*, /health
 
-- **Be concise.** Prefer code over explanation. Only explain when logic is non-trivial.
-- **Stay scoped.** Analyse only the current file, directly imported files, and files explicitly referenced in the prompt. Do not scan the repository broadly.
-- **Search only when needed.** Use specific queries (class names, method names, exact identifiers). Do not search broadly for "auth logic" or "database layer".
-- **Surgical edits.** Modify only what the task requires. Do not rewrite unrelated modules, alter existing controller routes, or change service signatures unless required.
-- **Follow existing patterns.** Match the module structure, DI pattern, and error handling approach already in the codebase.
-- **No guessing.** Ask for clarification rather than making broad assumptions about missing context.
-- **No fluff.** No placeholder comments, no unused variables, no dead code, no over-engineering.
+## Registration & Login
+- Register: POST /api/v1/auth/register — { email, phone (E.164 e.g. +919876543210), password }
+- Login: POST /api/v1/auth/login — { identifier: email|phone, password }
+- Tokens: { accessToken (15m), refreshToken (7d) }
+- Refresh: POST /api/v1/auth/refresh — { refreshToken }
 
----
+## Prisma conventions
+- Schema: prisma/schema.prisma — always run `npx prisma generate` after any change
+- Soft-delete: PrismaService registers a middleware that appends WHERE deletedAt IS NULL to all findMany/findFirst/findUnique calls automatically
+- Models with dual nullable FKs (businessId/startupId) MUST use named @relation() — see existing models for pattern
+- XOR constraint (exactly one of businessId/startupId must be non-null) is enforced by raw SQL in prisma/migrations/001_xor_constraints.sql
 
-## Project structure
+## API conventions
+- Base path: /api/v1
+- Swagger docs: GET /api/docs (dev only)
+- All responses wrapped: { success: true, data: ..., meta: { requestId, timestamp, version } }
+- All errors wrapped: { success: false, error: { code, message, details, requestId, timestamp } }
+- Prisma P2002 → 409 CONFLICT, P2025 → 404 NOT_FOUND, everything else → 500
 
-```
-src/
-├── common/
-│   ├── exceptions/         # Custom domain exceptions
-│   ├── filters/            # Global HTTP exception filter
-│   ├── interceptors/       # Logging interceptor
-│   └── pipes/              # ZodValidationPipe
-├── config/                 # NestJS ConfigModule setup
-├── logger/                 # WinstonLoggerService
-├── prisma/                 # PrismaService (global module)
-├── cache/                  # CacheService wrapping ioredis (global module)
-└── modules/
-    ├── business/
-    │   ├── business.module.ts
-    │   ├── business.controller.ts
-    │   ├── business.service.ts
-    │   ├── business.controller.spec.ts
-    │   ├── business.service.spec.ts
-    │   ├── schemas/             # Zod schemas for this module
-    │   └── types/               # TypeScript types for this module
-    ├── matching/
-    ├── compliance/
-    ├── llm/
-    ├── pdf/
-    └── form-mapping/
-```
+## Coding standards
+- No comments unless the WHY is non-obvious (hidden constraint, workaround, invariant)
+- DTOs use class-validator decorators; ValidationPipe is global (whitelist: true, transform: true)
+- Services never let raw Prisma errors escape — GlobalExceptionFilter handles mapping
+- Financial fields (annualTurnoverRange, investmentPlantMachinery) excluded from Winston request logs
+- All AI calls go through AiService — never call OpenAI client directly from feature services
 
-Every module follows the same layout. Do not deviate.
+## Entity types
+BUSINESS fields: businessName, ownerName, constitution, sector, state, district, taluka?, yearEstablished, productionStart?, annualTurnoverRange, investmentPlantMachinery, msmeCategory (auto), totalEmployees, maleEmployees, femaleEmployees, gstStatus, udyamNumber?, gstin?, existingRegistrations[], pendingNotices, ownerGender, ownerAgeGroup, socialCategory, education, womenLed, bplCard, knownSchemes?
 
----
+STARTUP adds: city, startupStage, startupDescription, investmentRaised, investmentType, dpiitNumber?, investors?, coFounders
+STARTUP removes: taluka is optional; no investmentInPlantMachinery as separate — uses same field name
 
-## TypeScript
+## MSME category auto-computation
+Computed from annualTurnoverRange + investmentPlantMachinery upper bounds in BusinessesService/StartupsService.
+Use src/shared/utils/range-parser.ts (RangeParser) to get upper bound of range strings.
+Micro: Inv ≤ 1Cr AND TO ≤ 5Cr | Small: ≤ 10Cr AND ≤ 50Cr | Medium: ≤ 50Cr AND ≤ 250Cr
 
-- `strict: true` is enforced — no exceptions.
-- Never use `any`. Use `unknown` and narrow, or define a precise type.
-- Every method must declare its return type explicitly, including `async` methods.
-- All Prisma query results must be typed using generated Prisma types — never cast to `any`.
-- Use `z.infer<typeof schema>` to derive types from Zod schemas — do not duplicate definitions.
+## Cache strategy
+- GET endpoints: @UseInterceptors(CacheInterceptor) + @CacheTTL(300) via @nestjs/cache-manager
+- POST /match: manual Redis cache — key = match:<sha256(userId+entityType)>, TTL 3600s
 
-```typescript
-// Correct
-async matchProfile(dto: MatchProfileDto): Promise<MatchResultDto> { ... }
+## Document generation (POST /api/v1/documents/generate)
+{ documentType: APPLICATION_LETTER|COMPLIANCE_ACTION_PLAN|PROFILE_REPORT, entityType: BUSINESS|STARTUP }
+AI returns { sections: [{ title, content, requiredFields: string[] }] }
+POST /api/v1/pdf/render takes filled content → binary PDF via pdfkit
 
-// Wrong — missing return type
-async matchProfile(dto: MatchProfileDto) { ... }
-```
-
----
-
-## Validation
-
-- Use **Zod exclusively** for validation. Do not use `class-validator` or `class-transformer`.
-- Define schemas in `src/modules/<name>/schemas/`. Export the schema and its inferred type together.
-- Apply `ZodValidationPipe` globally or per-controller using the `@UsePipes()` decorator.
-- Validate all external payloads: HTTP request bodies, OpenAI responses, Prisma results that include dynamic `Json` fields.
-- Strip unknown fields from validated input using `.strict()` or `.strip()` as appropriate.
-
-```typescript
-// src/modules/business/schemas/create-business.schema.ts
-export const createBusinessSchema = z.object({
-  businessName: z.string().min(1).max(200),
-  sector: SectorEnum,
-  annualTurnover: z.number().positive(),
-  district: z.string().min(1),
-  taluka: z.string().min(1),
-});
-
-export type CreateBusinessDto = z.infer<typeof createBusinessSchema>;
-```
-
----
-
-## NestJS module pattern
-
-Each module must follow this pattern exactly:
-
-```typescript
-// business.module.ts
-@Module({
-  imports: [PrismaModule, CacheModule],
-  controllers: [BusinessController],
-  providers: [BusinessService],
-  exports: [BusinessService],
-})
-export class BusinessModule {}
-```
-
-- Controllers handle HTTP — no business logic, no Prisma calls.
-- Services handle business logic — injected via constructor DI.
-- Global providers (PrismaService, CacheService, WinstonLoggerService) are available everywhere without re-importing.
-
----
-
-## Error handling
-
-- Throw NestJS built-in HTTP exceptions from services: `NotFoundException`, `BadRequestException`, `ConflictException`, `InternalServerErrorException`.
-- For domain-specific errors, extend `HttpException` in `src/common/exceptions/`.
-- The global `HttpExceptionFilter` in `src/common/filters/` handles all unhandled exceptions — do not duplicate error formatting in controllers.
-- Never expose raw stack traces or Prisma error details in HTTP responses.
-- Log every caught error with Winston before rethrowing or responding.
-
-```typescript
-async findBusiness(id: string): Promise<Business> {
-  const business = await this.prisma.business.findUnique({ where: { id } });
-  if (!business) {
-    throw new NotFoundException(`Business ${id} not found`);
-  }
-  return business;
-}
-```
-
----
-
-## Logging (Winston)
-
-- Inject `WinstonLoggerService` in every service. Never use `console.log` or `console.error`.
-- Declare the logger as a class property with an explicit type.
-- Log levels:
-  - `error` — caught exceptions and failures
-  - `warn` — degraded states (cache miss causing DB fallback, retry attempt)
-  - `info` — key operations (profile matched, PDF generated, cache populated)
-  - `debug` — detailed traces for development only
-- Always include structured context: `{ method, id, durationMs }`. Never log PII (names, phone, PAN, Aadhaar).
-
-```typescript
-export class MatchingService {
-  private readonly logger: WinstonLoggerService;
-
-  constructor(logger: WinstonLoggerService) {
-    this.logger = logger;
-  }
-
-  async matchProfile(dto: MatchProfileDto): Promise<MatchResultDto> {
-    this.logger.info('MatchingService.matchProfile started', { sector: dto.sector });
-    try {
-      // ...
-    } catch (error: unknown) {
-      this.logger.error('MatchingService.matchProfile failed', { error });
-      throw new InternalServerErrorException('Matching failed');
-    }
-  }
-}
-```
-
----
-
-## Prisma
-
-- Import and use generated Prisma types directly — do not redefine model shapes manually.
-- Use `prisma.$transaction()` for operations that must be atomic.
-- Never call Prisma directly from a controller — always through a service.
-- Handle `PrismaClientKnownRequestError` explicitly where record-not-found or unique constraint violations are expected.
-
-```typescript
-import { Prisma } from '@prisma/client';
-
-async createBusiness(dto: CreateBusinessDto): Promise<Prisma.BusinessGetPayload<{}>> {
-  try {
-    return await this.prisma.business.create({ data: dto });
-  } catch (error: unknown) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      throw new ConflictException('Business already exists');
-    }
-    throw error;
-  }
-}
-```
-
----
-
-## Cache (Redis)
-
-- All Redis operations go through `CacheService` — never import `ioredis` directly in a module.
-- Key naming convention: `<entity>:<identifier>` — e.g., `match:<sha256>`, `schemes:all`, `compliance:<sector>`.
-- Always handle cache misses gracefully — fall through to the database.
-- Log cache hits at `debug` level; log cache misses at `debug` level.
-
-```typescript
-async getSchemes(): Promise<Scheme[]> {
-  const cached = await this.cache.get<Scheme[]>('schemes:all');
-  if (cached) return cached;
-
-  const schemes = await this.prisma.scheme.findMany({ where: { isActive: true } });
-  await this.cache.set('schemes:all', schemes, 86400);
-  return schemes;
-}
-```
-
----
-
-## Testing
-
-- Unit tests only. No e2e. No integration tests.
-- One spec file per controller (`<name>.controller.spec.ts`) and one per service (`<name>.service.spec.ts`).
-- Mock `PrismaService`, `CacheService`, `WinstonLoggerService`, and `LLMService` using `jest.fn()` — do not spin up real connections.
-- Test: happy path, Zod validation rejection, service exception propagation, cache hit vs. miss branches.
-- Do not test NestJS DI wiring. Test logic only.
-- All test functions must have explicit return types.
-
-```typescript
-describe('BusinessService', (): void => {
-  let service: BusinessService;
-  let prisma: jest.Mocked<PrismaService>;
-
-  beforeEach(async (): Promise<void> => {
-    const module = await Test.createTestingModule({
-      providers: [
-        BusinessService,
-        { provide: PrismaService, useValue: { business: { findUnique: jest.fn() } } },
-      ],
-    }).compile();
-
-    service = module.get(BusinessService);
-    prisma = module.get(PrismaService);
-  });
-
-  it('throws NotFoundException when business does not exist', async (): Promise<void> => {
-    prisma.business.findUnique.mockResolvedValue(null);
-    await expect(service.findBusiness('nonexistent-id')).rejects.toThrow(NotFoundException);
-  });
-});
-```
-
----
-
-## Comments
-
-- Comment non-trivial business logic only: complex eligibility rules, multi-step LLM prompt construction, Redis key invalidation strategies.
-- Do not comment obvious code. Naming should be self-documenting.
-- Use JSDoc only for exported service methods with non-obvious side effects or parameters.
-- No placeholder comments: no `// TODO`, `// implement later`, `// fix this`.
-
----
-
-## What to avoid
-
-- `any` type — anywhere
-- `console.log` / `console.error` — use WinstonLoggerService
-- `class-validator` / `class-transformer` — use Zod
-- Direct Prisma calls in controllers
-- Inline Zod schemas inside controllers or services — define in `schemas/`
-- Exposing raw Prisma errors or stack traces in HTTP responses
-- Cross-module Prisma queries — go through the owning module's service
-- Rewriting entire modules when only a method needs to change
-- Adding new global middleware or interceptors without checking what exists in `src/common/`
+## Datasets (gitignored — place in prisma/data/)
+- updated_data.csv → schemes table (700+ rows, upsert on slug)
+- startup_funding.csv → startup_funding_records (read-only analytics)
+Seed scripts use DIRECT_URL (non-pooled Neon connection) to avoid mid-batch disconnects

@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(uuid()) @db.Uuid
+  email            String    @unique @db.VarChar(255)
+  phone            String    @unique @db.VarChar(20)
+  passwordHash     String
+  role             String    @default("USER") @db.VarChar(20)
+  refreshTokenHash String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  business  Business?
+  startup   Startup?
+  documents GeneratedDocument[]
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+// ─── Business ────────────────────────────────────────────────────────────────
+
+model Business {
+  id                       String    @id @default(uuid()) @db.Uuid
+  userId                   String    @unique @db.Uuid
+
+  businessName             String    @db.VarChar(255)
+  ownerName                String    @db.VarChar(255)
+  constitution             String    @db.VarChar(100)
+  sector                   String    @db.VarChar(100)
+  state                    String    @db.VarChar(100)
+  district                 String    @db.VarChar(100)
+  taluka                   String?   @db.VarChar(100)
+  yearEstablished          Int
+  productionStart          String?   @db.VarChar(50)
+
+  annualTurnoverRange      String    @db.VarChar(100)
+  investmentPlantMachinery String    @db.VarChar(100)
+  msmeCategory             String?   @db.VarChar(50)
+
+  totalEmployees           Int
+  maleEmployees            Int
+  femaleEmployees          Int
+
+  gstStatus                String    @db.VarChar(50)
+  udyamNumber              String?   @db.VarChar(100)
+  gstin                    String?   @db.VarChar(20)
+  existingRegistrations    Json      @default("[]")
+  pendingNotices           Boolean   @default(false)
+
+  ownerGender              String    @db.VarChar(50)
+  ownerAgeGroup            String    @db.VarChar(20)
+  socialCategory           String    @db.VarChar(50)
+  education                String    @db.VarChar(100)
+  womenLed                 String    @db.VarChar(20)
+  bplCard                  Boolean   @default(false)
+
+  knownSchemes             String?   @db.Text
+  documentsOnFile          Json      @default("[]")
+
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  deletedAt                DateTime?
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schemeMatches     SchemeMatch[]          @relation("BusinessSchemeMatches")
+  complianceBatches ComplianceCheckBatch[] @relation("BusinessComplianceBatches")
+  applications      Application[]          @relation("BusinessApplications")
+  documents         GeneratedDocument[]    @relation("BusinessDocuments")
+
+  @@index([sector, state])
+  @@index([msmeCategory])
+  @@index([deletedAt])
+  @@map("businesses")
+}
+
+// ─── Startup ─────────────────────────────────────────────────────────────────
+
+model Startup {
+  id                       String    @id @default(uuid()) @db.Uuid
+  userId                   String    @unique @db.Uuid
+
+  startupName              String    @db.VarChar(255)
+  ownerName                String    @db.VarChar(255)
+  constitution             String    @db.VarChar(100)
+  sector                   String    @db.VarChar(100)
+  state                    String    @db.VarChar(100)
+  district                 String    @db.VarChar(100)
+  taluka                   String?   @db.VarChar(100)
+  city                     String    @db.VarChar(100)
+  yearEstablished          Int
+  productionStart          String?   @db.VarChar(50)
+
+  startupStage             String    @db.VarChar(50)
+  startupDescription       String    @db.Text
+
+  annualTurnoverRange      String    @db.VarChar(100)
+  investmentPlantMachinery String    @db.VarChar(100)
+  msmeCategory             String?   @db.VarChar(50)
+  investmentRaised         String    @db.VarChar(100)
+  investmentType           String    @db.VarChar(100)
+
+  totalEmployees           Int
+  maleEmployees            Int
+  femaleEmployees          Int
+  coFounders               Int       @default(0)
+
+  gstStatus                String    @db.VarChar(50)
+  udyamNumber              String?   @db.VarChar(100)
+  gstin                    String?   @db.VarChar(20)
+  dpiitNumber              String?   @db.VarChar(100)
+  investors                String?   @db.Text
+  existingRegistrations    Json      @default("[]")
+  pendingNotices           Boolean   @default(false)
+
+  ownerGender              String    @db.VarChar(50)
+  ownerAgeGroup            String    @db.VarChar(20)
+  socialCategory           String    @db.VarChar(50)
+  education                String    @db.VarChar(100)
+  womenLed                 String    @db.VarChar(20)
+  bplCard                  Boolean   @default(false)
+
+  knownSchemes             String?   @db.Text
+  documentsOnFile          Json      @default("[]")
+
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  deletedAt                DateTime?
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schemeMatches     SchemeMatch[]          @relation("StartupSchemeMatches")
+  complianceBatches ComplianceCheckBatch[] @relation("StartupComplianceBatches")
+  applications      Application[]          @relation("StartupApplications")
+  documents         GeneratedDocument[]    @relation("StartupDocuments")
+
+  @@index([sector, state])
+  @@index([startupStage])
+  @@index([deletedAt])
+  @@map("startups")
+}
+
+// ─── Schemes ─────────────────────────────────────────────────────────────────
+
+model Scheme {
+  id               String   @id @default(uuid()) @db.Uuid
+  schemeName       String   @db.VarChar(500)
+  slug             String   @unique @db.VarChar(500)
+  details          String?  @db.Text
+  benefits         String?  @db.Text
+  eligibility      String?  @db.Text
+  application      String?  @db.Text
+  documents        Json     @default("[]")
+  level            String   @db.VarChar(100)
+  schemeCategory   Json     @default("{}")
+  tags             Json     @default("[]")
+  targetCategory   String?  @db.VarChar(50)
+  applicableStates Json     @default("[]")
+  applicationLink  String?  @db.Text
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  schemeMatches      SchemeMatch[]
+  applications       Application[]
+  generatedDocuments GeneratedDocument[]
+
+  @@index([level, isActive])
+  @@index([targetCategory])
+  @@map("schemes")
+}
+
+// ─── Scheme Matching ─────────────────────────────────────────────────────────
+
+model SchemeMatch {
+  id                  String    @id @default(uuid()) @db.Uuid
+  businessId          String?   @db.Uuid
+  startupId           String?   @db.Uuid
+  schemeId            String    @db.Uuid
+  status              String    @db.VarChar(50)
+  matchScore          Decimal?  @db.Decimal(5, 2)
+  confidenceScore     Decimal?  @db.Decimal(5, 2)
+  metCriteria         Json      @default("[]")
+  unmetCriteria       Json      @default("[]")
+  gapBridgeSteps      Json      @default("[]")
+  remediationCost     String?   @db.VarChar(100)
+  remediationEffort   String?   @db.VarChar(50)
+  unlocksOtherSchemes Json      @default("[]")
+  matchedAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  business Business? @relation("BusinessSchemeMatches", fields: [businessId], references: [id], onDelete: Cascade)
+  startup  Startup?  @relation("StartupSchemeMatches", fields: [startupId], references: [id], onDelete: Cascade)
+  scheme   Scheme    @relation(fields: [schemeId], references: [id])
+
+  @@index([businessId, matchedAt(sort: Desc)])
+  @@index([startupId, matchedAt(sort: Desc)])
+  @@index([schemeId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("scheme_matches")
+}
+
+// ─── Compliance ───────────────────────────────────────────────────────────────
+
+model ComplianceRequirement {
+  id                String   @id @default(uuid()) @db.Uuid
+  complianceId      String   @unique @db.VarChar(100)
+  name              String   @db.VarChar(255)
+  category          String   @db.VarChar(100)
+  applicableTo      Json     @default("{}")
+  tiers             Json     @default("{}")
+  penalty           String?  @db.Text
+  applicationPortal String?  @db.Text
+  recentChanges     Json     @default("[]")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  complianceResults ComplianceResult[]
+
+  @@index([complianceId])
+  @@map("compliance_requirements")
+}
+
+model ComplianceCheckBatch {
+  id           String   @id @default(uuid()) @db.Uuid
+  businessId   String?  @db.Uuid
+  startupId    String?  @db.Uuid
+  overallScore Int
+  checkedAt    DateTime @default(now())
+
+  business Business? @relation("BusinessComplianceBatches", fields: [businessId], references: [id], onDelete: Cascade)
+  startup  Startup?  @relation("StartupComplianceBatches", fields: [startupId], references: [id], onDelete: Cascade)
+  results  ComplianceResult[]
+
+  @@index([businessId, checkedAt(sort: Desc)])
+  @@index([startupId, checkedAt(sort: Desc)])
+  @@map("compliance_check_batches")
+}
+
+model ComplianceResult {
+  id                      String   @id @default(uuid()) @db.Uuid
+  batchId                 String   @db.Uuid
+  complianceRequirementId String   @db.Uuid
+  status                  String   @db.VarChar(20)
+  currentTier             String?  @db.VarChar(100)
+  requiredTier            String?  @db.VarChar(100)
+  penalty                 String?  @db.Text
+  fixSteps                Json     @default("[]")
+  missingActions          Json     @default("[]")
+  createdAt               DateTime @default(now())
+
+  batch                 ComplianceCheckBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  complianceRequirement ComplianceRequirement @relation(fields: [complianceRequirementId], references: [id])
+
+  @@unique([batchId, complianceRequirementId])
+  @@index([status])
+  @@index([complianceRequirementId])
+  @@map("compliance_results")
+}
+
+// ─── Generated Documents ─────────────────────────────────────────────────────
+
+model GeneratedDocument {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String?   @db.Uuid
+  businessId    String?   @db.Uuid
+  startupId     String?   @db.Uuid
+  schemeId      String?   @db.Uuid
+  documentType  String    @db.VarChar(50)
+  content       Json
+  filledContent Json?
+  pdfPath       String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  business Business? @relation("BusinessDocuments", fields: [businessId], references: [id], onDelete: Cascade)
+  startup  Startup?  @relation("StartupDocuments", fields: [startupId], references: [id], onDelete: Cascade)
+  scheme   Scheme?   @relation(fields: [schemeId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([startupId])
+  @@index([documentType])
+  @@index([deletedAt])
+  @@map("generated_documents")
+}
+
+// ─── Applications ─────────────────────────────────────────────────────────────
+
+model Application {
+  id                String    @id @default(uuid()) @db.Uuid
+  businessId        String?   @db.Uuid
+  startupId         String?   @db.Uuid
+  schemeId          String    @db.Uuid
+  portalName        String?   @db.VarChar(255)
+  applicationStatus String    @db.VarChar(50)
+  formDataSnapshot  Json      @default("{}")
+  generatedPdfPath  String?   @db.Text
+  submittedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  business Business? @relation("BusinessApplications", fields: [businessId], references: [id], onDelete: Cascade)
+  startup  Startup?  @relation("StartupApplications", fields: [startupId], references: [id], onDelete: Cascade)
+  scheme   Scheme    @relation(fields: [schemeId], references: [id])
+
+  @@index([businessId])
+  @@index([startupId])
+  @@index([schemeId])
+  @@index([applicationStatus])
+  @@map("applications")
+}
+
+// ─── Regulatory Updates ───────────────────────────────────────────────────────
+
+model RegulatoryUpdate {
+  id                   String   @id @default(uuid()) @db.Uuid
+  title                String   @db.VarChar(500)
+  effectiveDate        DateTime @db.Date
+  severity             String   @db.VarChar(50)
+  summary              String   @db.Text
+  actionRequired       String   @db.Text
+  sourceUrl            String   @db.Text
+  affectsComplianceIds Json     @default("[]")
+  affectsSchemeIds     Json     @default("[]")
+  createdAt            DateTime @default(now())
+
+  @@index([effectiveDate])
+  @@index([severity])
+  @@map("regulatory_updates")
+}
+
+// ─── Startup Funding Analytics ────────────────────────────────────────────────
+
+model StartupFundingRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  startupName    String    @db.VarChar(500)
+  sector         String?   @db.VarChar(200)
+  state          String?   @db.VarChar(100)
+  fundingRound   String?   @db.VarChar(100)
+  amount         Decimal?  @db.Decimal(20, 2)
+  amountCurrency String?   @db.VarChar(10)
+  investors      Json      @default("[]")
+  fundingDate    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([sector, state])
+  @@index([fundingDate])
+  @@map("startup_funding_records")
+}
