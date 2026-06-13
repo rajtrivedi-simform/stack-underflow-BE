@@ -20,7 +20,7 @@ logs/
 npm-debug.log*
 
 # Prisma
-prisma/data/
+# prisma/data/
 
 # Coverage
 coverage/

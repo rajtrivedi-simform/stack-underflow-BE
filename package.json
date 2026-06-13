@@ -15,7 +15,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "prisma:seed": "ts-node -r tsconfig-paths/register prisma/seed-schemes.ts && ts-node -r tsconfig-paths/register prisma/seed-startup-funding.ts",
+    "prisma:seed": "npm run prisma:seed:schemes && npm run prisma:seed:funding && npm run prisma:seed:enriched",
+    "prisma:seed:schemes": "ts-node -r tsconfig-paths/register prisma/seed-schemes.ts",
+    "prisma:seed:funding": "ts-node -r tsconfig-paths/register prisma/seed-startup-funding.ts",
+    "prisma:seed:enriched": "ts-node -r tsconfig-paths/register prisma/seed-schemes-enriched.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy"
