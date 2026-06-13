@@ -43,11 +43,11 @@ async function main() {
         try { fundingDate = rawDate ? new Date(rawDate) : null; } catch { fundingDate = null; }
 
         return {
-          startupName: row['Startup Name'] || row['startup_name'] || row['company'] || 'Unknown',
-          sector: row['Sector'] || row['sector'] || row['industry'] || null,
-          state: row['State'] || row['state'] || row['city'] || null,
-          fundingRound: row['Funding Round'] || row['funding_round'] || row['stage'] || null,
-          amount: parseAmount(row['Amount'] || row['amount'] || ''),
+          startupName: row['Startup'] || row['Startup Name'] || row['startup_name'] || row['company'] || 'Unknown',
+          sector: row['Industry'] || row['Sector'] || row['sector'] || row['industry'] || null,
+          state: row['City'] || row['State'] || row['state'] || row['city'] || null,
+          fundingRound: row['InvestmentType'] || row['Funding Round'] || row['funding_round'] || row['stage'] || null,
+          amount: parseAmount(row['InvestmentAmount_USD'] || row['Amount'] || row['amount'] || ''),
           amountCurrency: row['Currency'] || row['currency'] || 'INR',
           investors: investors.length ? investors : [],
           fundingDate: fundingDate && !isNaN(fundingDate.getTime()) ? fundingDate : null,
