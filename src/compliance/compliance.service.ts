@@ -1,22 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { buildCompliancePrompt } from '../ai/prompts/compliance.prompt';
+import { AiComplianceResult } from '../ai/schemas/ai-compliance-result.schema';
 import { ComplianceRequestDto } from './dto/compliance-request.dto';
 import { EntityType } from '../match/dto/match-request.dto';
-
-interface AiComplianceResult {
-  overallScore: number;
-  results: Array<{
-    complianceRequirementId: string;
-    status: string;
-    currentTier?: string;
-    requiredTier?: string;
-    penalty?: string;
-    fixSteps: string[];
-    missingActions: string[];
-  }>;
-}
 
 @Injectable()
 export class ComplianceService {
@@ -43,10 +32,12 @@ export class ComplianceService {
           ? { businessId: entityId }
           : { startupId: entityId }),
         overallScore: aiResult.overallScore ?? 0,
+        aiSuggestedCompliances: (aiResult.suggestedCompliances ?? []) as unknown as Prisma.InputJsonValue,
         results: {
           create: (aiResult.results ?? []).map((r) => ({
             complianceRequirementId: r.complianceRequirementId,
             status: r.status,
+            isMandatory: r.isMandatory ?? false,
             currentTier: r.currentTier ?? null,
             requiredTier: r.requiredTier ?? null,
             penalty: r.penalty ?? null,
@@ -73,7 +64,15 @@ export class ComplianceService {
         skip,
         take: limit,
         orderBy: { checkedAt: 'desc' },
-        include: { results: { select: { status: true, complianceRequirement: { select: { name: true, category: true } } } } },
+        include: {
+          results: {
+            select: {
+              status: true,
+              isMandatory: true,
+              complianceRequirement: { select: { name: true, category: true } },
+            },
+          },
+        },
       }),
       this.prisma.complianceCheckBatch.count({ where }),
     ]);

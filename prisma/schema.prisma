@@ -197,6 +197,7 @@ model SchemeMatch {
   remediationCost     String?   @db.VarChar(100)
   remediationEffort   String?   @db.VarChar(50)
   unlocksOtherSchemes Json      @default("[]")
+  explanation         String?   @db.Text
   matchedAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
@@ -235,11 +236,12 @@ model ComplianceRequirement {
 }
 
 model ComplianceCheckBatch {
-  id           String   @id @default(uuid()) @db.Uuid
-  businessId   String?  @db.Uuid
-  startupId    String?  @db.Uuid
-  overallScore Int
-  checkedAt    DateTime @default(now())
+  id                     String   @id @default(uuid()) @db.Uuid
+  businessId             String?  @db.Uuid
+  startupId              String?  @db.Uuid
+  overallScore           Int
+  aiSuggestedCompliances Json?
+  checkedAt              DateTime @default(now())
 
   business Business? @relation("BusinessComplianceBatches", fields: [businessId], references: [id], onDelete: Cascade)
   startup  Startup?  @relation("StartupComplianceBatches", fields: [startupId], references: [id], onDelete: Cascade)
@@ -255,6 +257,7 @@ model ComplianceResult {
   batchId                 String   @db.Uuid
   complianceRequirementId String   @db.Uuid
   status                  String   @db.VarChar(20)
+  isMandatory             Boolean?
   currentTier             String?  @db.VarChar(100)
   requiredTier            String?  @db.VarChar(100)
   penalty                 String?  @db.Text
