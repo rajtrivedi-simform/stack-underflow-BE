@@ -28,6 +28,8 @@ interface AiMatchResult {
   }>;
 }
 
+type MatchResult = { entityType: EntityType; total: number; eligible: number; matches: AiMatchResult['matches'] };
+
 @Injectable()
 export class MatchService {
   constructor(
@@ -39,17 +41,20 @@ export class MatchService {
     private readonly startups: StartupsService,
   ) {}
 
-  async match(userId: string, dto: MatchRequestDto) {
+  async match(
+    userId: string,
+    dto: MatchRequestDto,
+  ): Promise<MatchResult> {
     const cacheKey = `match:${crypto
       .createHash('sha256')
       .update(`${userId}:${dto.entityType}`)
       .digest('hex')}`;
 
-    const cached = await this.redis.get(cacheKey);
+    const cached = await this.redis.get<MatchResult>(cacheKey);
     if (cached) return cached;
 
     const { entity, entityId } = await this.resolveEntity(userId, dto.entityType);
-    const allSchemes = await this.schemes.findManyForMatch(dto.entityType);
+    const allSchemes = await this.schemes.findManyForAi();
 
     const prompt =
       dto.entityType === EntityType.BUSINESS
@@ -60,41 +65,29 @@ export class MatchService {
 
     const matchData = aiResult.matches ?? [];
 
-    await this.prisma.$transaction(
-      matchData.map((m) =>
-        this.prisma.schemeMatch.upsert({
-          where: {
-            id: `${entityId}-${m.schemeId}`,
-          },
-          create: {
-            ...(dto.entityType === EntityType.BUSINESS
-              ? { businessId: entityId }
-              : { startupId: entityId }),
-            schemeId: m.schemeId,
-            status: m.status,
-            matchScore: m.matchScore,
-            confidenceScore: m.confidenceScore,
-            metCriteria: m.metCriteria,
-            unmetCriteria: m.unmetCriteria,
-            gapBridgeSteps: m.gapBridgeSteps as unknown as Prisma.InputJsonValue,
-            remediationCost: m.remediationCost ?? null,
-            remediationEffort: m.remediationEffort ?? null,
-            unlocksOtherSchemes: m.unlocksOtherSchemes ?? [],
-          },
-          update: {
-            status: m.status,
-            matchScore: m.matchScore,
-            confidenceScore: m.confidenceScore,
-            metCriteria: m.metCriteria,
-            unmetCriteria: m.unmetCriteria,
-            gapBridgeSteps: m.gapBridgeSteps as unknown as Prisma.InputJsonValue,
-            remediationCost: m.remediationCost ?? null,
-            remediationEffort: m.remediationEffort ?? null,
-            unlocksOtherSchemes: m.unlocksOtherSchemes ?? [],
-          },
-        }),
-      ),
-    );
+    const entityFilter =
+      dto.entityType === EntityType.BUSINESS
+        ? { businessId: entityId }
+        : { startupId: entityId };
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.schemeMatch.deleteMany({ where: entityFilter });
+      await tx.schemeMatch.createMany({
+        data: matchData.map((m) => ({
+          ...entityFilter,
+          schemeId: m.schemeId,
+          status: m.status,
+          matchScore: m.matchScore,
+          confidenceScore: m.confidenceScore,
+          metCriteria: m.metCriteria,
+          unmetCriteria: m.unmetCriteria,
+          gapBridgeSteps: m.gapBridgeSteps as unknown as Prisma.InputJsonValue,
+          remediationCost: m.remediationCost ?? null,
+          remediationEffort: m.remediationEffort ?? null,
+          unlocksOtherSchemes: m.unlocksOtherSchemes ?? [],
+        })),
+      });
+    });
 
     const result = {
       entityType: dto.entityType,

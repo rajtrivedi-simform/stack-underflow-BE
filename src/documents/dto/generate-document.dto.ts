@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { EntityType } from '../../match/dto/match-request.dto';
 
 export enum DocumentType {
@@ -17,8 +17,8 @@ export class GenerateDocumentDto {
   @IsEnum(EntityType)
   entityType: EntityType;
 
-  @ApiPropertyOptional({ description: 'Required for APPLICATION_LETTER; scheme ID' })
+  @ApiPropertyOptional({ description: 'Required for APPLICATION_LETTER; must be a valid scheme UUID' })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   schemeId?: string;
 }

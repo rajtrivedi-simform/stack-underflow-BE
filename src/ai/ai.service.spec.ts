@@ -5,11 +5,12 @@ import { AiService } from './ai.service';
 
 const mockOpenAiCreate = jest.fn();
 
-jest.mock('openai', () => {
-  return jest.fn().mockImplementation(() => ({
+jest.mock('openai', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
     chat: { completions: { create: mockOpenAiCreate } },
-  }));
-});
+  })),
+}));
 
 const mockConfig = { get: jest.fn((key: string) => ({ 'openai.apiKey': 'sk-test', 'openai.model': 'gpt-4o', 'openai.maxTokens': 4096 }[key])) };
 

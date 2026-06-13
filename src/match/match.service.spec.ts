@@ -12,12 +12,12 @@ import { EntityType } from './dto/match-request.dto';
 const mockPrisma = {
   business: { findUnique: jest.fn() },
   startup: { findUnique: jest.fn() },
-  schemeMatch: { upsert: jest.fn() },
-  $transaction: jest.fn().mockResolvedValue([]),
+  schemeMatch: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }), createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+  $transaction: jest.fn().mockImplementation((cb: (tx: typeof mockPrisma) => Promise<unknown>) => cb(mockPrisma)),
 };
 const mockRedis = { get: jest.fn().mockResolvedValue(null), set: jest.fn() };
 const mockAi = { chat: jest.fn() };
-const mockSchemes = { findManyForMatch: jest.fn().mockResolvedValue([]) };
+const mockSchemes = { findManyForMatch: jest.fn().mockResolvedValue([]), findManyForAi: jest.fn().mockResolvedValue([]) };
 const mockBusinesses = {};
 const mockStartups = {};
 

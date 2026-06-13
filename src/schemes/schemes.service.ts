@@ -69,4 +69,13 @@ export class SchemesService {
       },
     }) as Promise<Array<{ id: string; schemeName: string; eligibility: string | null; targetCategory: string | null; applicableStates: unknown }>>;
   }
+
+  async findManyForAi(limit = 80): Promise<Array<{ id: string; schemeName: string; eligibility: string | null; targetCategory: string | null }>> {
+    return this.prisma.scheme.findMany({
+      where: { isActive: true },
+      select: { id: true, schemeName: true, eligibility: true, targetCategory: true },
+      take: limit,
+      orderBy: { schemeName: 'asc' },
+    });
+  }
 }

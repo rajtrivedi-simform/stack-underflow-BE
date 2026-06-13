@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 
@@ -15,11 +15,19 @@ export class AiService {
   }
 
   async chat<T = unknown>(prompt: string): Promise<T> {
+    // 1 token ≈ 4 chars. Reject before hitting the API to avoid 429s.
+    const estimatedTokens = Math.ceil(prompt.length / 4);
+    if (estimatedTokens > 25_000) {
+      throw new BadRequestException(
+        `Prompt too large: ~${estimatedTokens} tokens. Reduce the number of schemes sent to AI.`,
+      );
+    }
+
     let raw: string;
     try {
       const response = await this.client.chat.completions.create({
         model: this.model,
-        max_tokens: this.maxTokens,
+        max_completion_tokens: this.maxTokens,
         response_format: { type: 'json_object' },
         messages: [
           {
