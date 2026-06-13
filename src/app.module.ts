@@ -21,6 +21,7 @@ import { PdfModule } from './pdf/pdf.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { RegulatoryUpdatesModule } from './regulatory-updates/regulatory-updates.module';
 import { InsightsModule } from './insights/insights.module';
+import { IdeasModule } from './ideas/ideas.module';
 import { CleanupModule } from './cleanup/cleanup.module';
 import { HealthModule } from './health/health.module';
 
@@ -51,6 +52,7 @@ import { HealthModule } from './health/health.module';
     ApplicationsModule,
     RegulatoryUpdatesModule,
     InsightsModule,
+    IdeasModule,
     CleanupModule,
     HealthModule,
   ],
