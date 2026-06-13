@@ -1,0 +1,306 @@
+{
+  "info": {
+    "name": "VyaparSetu API",
+    "description": "Postman collection for VyaparSetu — AI-powered government scheme finder for Indian MSMEs and Startups.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "auth", "register" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@example.com\",\n  \"phone\": \"+919876543210\",\n  \"password\": \"securepassword123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.environment.set(\"token\", jsonData.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "auth", "login" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"owner@example.com\",\n  \"password\": \"securepassword123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "users", "me" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Businesses",
+      "item": [
+        {
+          "name": "Create Business Profile",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/businesses",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "businesses" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessName\": \"Sri Ram Textiles\",\n  \"ownerName\": \"Rajesh Kumar\",\n  \"constitution\": \"Proprietorship\",\n  \"sector\": \"Manufacturing\",\n  \"state\": \"Gujarat\",\n  \"district\": \"Surat\",\n  \"yearEstablished\": 2018,\n  \"annualTurnoverRange\": \"< 40 Lakh\",\n  \"investmentPlantMachinery\": \"< 1 Cr\",\n  \"totalEmployees\": 15,\n  \"maleEmployees\": 10,\n  \"femaleEmployees\": 5,\n  \"gstStatus\": \"Registered\",\n  \"udyamNumber\": \"UDYAM-GJ-01-1234567\",\n  \"ownerGender\": \"Male\",\n  \"ownerAgeGroup\": \"30-40\",\n  \"socialCategory\": \"General\",\n  \"education\": \"Graduate\",\n  \"womenLed\": \"No\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Business",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/businesses/me",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "businesses", "me" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Startups",
+      "item": [
+        {
+          "name": "Create Startup Profile",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/startups",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "startups" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startupName\": \"TechNova Innovations\",\n  \"ownerName\": \"Aditi Sharma\",\n  \"constitution\": \"Private Limited\",\n  \"sector\": \"IT Services\",\n  \"state\": \"Karnataka\",\n  \"district\": \"Bengaluru Urban\",\n  \"city\": \"Bengaluru\",\n  \"yearEstablished\": 2021,\n  \"startupStage\": \"Early Traction\",\n  \"startupDescription\": \"AI based B2B SaaS platform\",\n  \"annualTurnoverRange\": \"< 1 Cr\",\n  \"investmentPlantMachinery\": \"< 40 Lakh\",\n  \"investmentRaised\": \"< 10 Lakh\",\n  \"investmentType\": \"Bootstrapped\",\n  \"totalEmployees\": 8,\n  \"maleEmployees\": 5,\n  \"femaleEmployees\": 3,\n  \"gstStatus\": \"Registered\",\n  \"dpiitNumber\": \"DIPP12345\",\n  \"ownerGender\": \"Female\",\n  \"ownerAgeGroup\": \"25-30\",\n  \"socialCategory\": \"General\",\n  \"education\": \"Post Graduate\",\n  \"womenLed\": \"Yes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Startup",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/startups/me",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "startups", "me" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schemes",
+      "item": [
+        {
+          "name": "List Schemes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/schemes?page=1&limit=20&isActive=true",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "schemes" ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "isActive", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Scheme by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/schemes/:id",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "schemes", ":id" ],
+              "variable": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Match",
+      "item": [
+        {
+          "name": "Match Profile",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/match",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "match" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entityType\": \"BUSINESS\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Match History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/match/history",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "match", "history" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Compliance",
+      "item": [
+        {
+          "name": "Check Compliance",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/compliance",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "compliance" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entityType\": \"BUSINESS\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Generate Document",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/generate",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "documents", "generate" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentType\": \"APPLICATION_LETTER\",\n  \"entityType\": \"BUSINESS\",\n  \"schemeId\": \"clm1x2y3z0000\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Check Health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "health" ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [ "" ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [ "" ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
