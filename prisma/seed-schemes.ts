@@ -7,6 +7,17 @@ const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DIRECT_URL } },
 });
 
+function parseJsonArray(raw: string): string[] {
+  if (!raw) return [];
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function parseDocuments(raw: string): string[] {
+  if (!raw) return [];
+  const parts = raw.split(/\.\s+/).map((s) => s.replace(/\.$/, '').trim()).filter(Boolean);
+  return parts.length > 1 ? parts : [raw.trim()];
+}
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -31,7 +42,7 @@ async function main() {
   let skipped = 0;
 
   for (const row of records) {
-    const schemeName = row['Scheme Name'] || row['scheme_name'] || row['name'] || '';
+    const schemeName = row['scheme_name'] || row['Scheme Name'] || row['name'] || '';
     if (!schemeName) { skipped++; continue; }
 
     const slug = slugify(schemeName);
@@ -41,11 +52,14 @@ async function main() {
         where: { slug },
         update: {
           schemeName,
-          details: row['Details'] || row['details'] || null,
-          benefits: row['Benefits'] || row['benefits'] || null,
-          eligibility: row['Eligibility'] || row['eligibility'] || null,
-          application: row['Application Process'] || row['application_process'] || null,
-          level: row['Level'] || row['level'] || 'CENTRAL',
+          details: row['details'] || row['Details'] || null,
+          benefits: row['benefits'] || row['Benefits'] || null,
+          eligibility: row['eligibility'] || row['Eligibility'] || null,
+          application: row['application'] || row['Application Process'] || null,
+          documents: parseDocuments(row['documents'] || row['Documents'] || ''),
+          level: row['level'] || row['Level'] || 'Central',
+          schemeCategory: parseJsonArray(row['schemeCategory'] || row['SchemeCategory'] || ''),
+          tags: parseJsonArray(row['tags'] || row['Tags'] || ''),
           targetCategory: row['Target Category'] || row['target_category'] || null,
           applicationLink: row['Application Link'] || row['application_link'] || null,
           isActive: true,
@@ -53,14 +67,14 @@ async function main() {
         create: {
           schemeName,
           slug,
-          details: row['Details'] || row['details'] || null,
-          benefits: row['Benefits'] || row['benefits'] || null,
-          eligibility: row['Eligibility'] || row['eligibility'] || null,
-          application: row['Application Process'] || row['application_process'] || null,
-          documents: [],
-          level: row['Level'] || row['level'] || 'CENTRAL',
-          schemeCategory: {},
-          tags: [],
+          details: row['details'] || row['Details'] || null,
+          benefits: row['benefits'] || row['Benefits'] || null,
+          eligibility: row['eligibility'] || row['Eligibility'] || null,
+          application: row['application'] || row['Application Process'] || null,
+          documents: parseDocuments(row['documents'] || row['Documents'] || ''),
+          level: row['level'] || row['Level'] || 'Central',
+          schemeCategory: parseJsonArray(row['schemeCategory'] || row['SchemeCategory'] || ''),
+          tags: parseJsonArray(row['tags'] || row['Tags'] || ''),
           targetCategory: row['Target Category'] || row['target_category'] || null,
           applicableStates: [],
           applicationLink: row['Application Link'] || row['application_link'] || null,
