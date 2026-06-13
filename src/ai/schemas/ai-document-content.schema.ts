@@ -1,13 +1,19 @@
-import { z } from 'zod';
+import Joi from 'joi';
 
-const sectionSchema = z.object({
-  title: z.string(),
-  content: z.string(),
-  requiredFields: z.array(z.string()).optional(),
+const sectionSchema = Joi.object({
+  title: Joi.string().required(),
+  content: Joi.string().required(),
+  requiredFields: Joi.array().items(Joi.string()).optional(),
 });
 
-export const aiDocumentContentSchema = z.object({
-  sections: z.array(sectionSchema),
+export const aiDocumentContentSchema = Joi.object({
+  sections: Joi.array().items(sectionSchema).required(),
 });
 
-export type AiDocumentContent = z.infer<typeof aiDocumentContentSchema>;
+export interface AiDocumentContent {
+  sections: Array<{
+    title: string;
+    content: string;
+    requiredFields?: string[];
+  }>;
+}

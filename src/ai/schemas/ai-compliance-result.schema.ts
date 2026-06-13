@@ -1,18 +1,31 @@
-import { z } from 'zod';
+import Joi from 'joi';
 
-export const aiComplianceResultSchema = z.object({
-  overallScore: z.number(),
-  results: z.array(
-    z.object({
-      complianceRequirementId: z.string(),
-      status: z.string(),
-      currentTier: z.string().nullable().optional(),
-      requiredTier: z.string().nullable().optional(),
-      penalty: z.string().nullable().optional(),
-      fixSteps: z.array(z.string()),
-      missingActions: z.array(z.string()),
-    }),
-  ),
+export const aiComplianceResultSchema = Joi.object({
+  overallScore: Joi.number().required(),
+  results: Joi.array()
+    .items(
+      Joi.object({
+        complianceRequirementId: Joi.string().required(),
+        status: Joi.string().required(),
+        currentTier: Joi.string().allow(null).optional(),
+        requiredTier: Joi.string().allow(null).optional(),
+        penalty: Joi.string().allow(null).optional(),
+        fixSteps: Joi.array().items(Joi.string()).required(),
+        missingActions: Joi.array().items(Joi.string()).required(),
+      }),
+    )
+    .required(),
 });
 
-export type AiComplianceResult = z.infer<typeof aiComplianceResultSchema>;
+export interface AiComplianceResult {
+  overallScore: number;
+  results: Array<{
+    complianceRequirementId: string;
+    status: string;
+    currentTier?: string | null;
+    requiredTier?: string | null;
+    penalty?: string | null;
+    fixSteps: string[];
+    missingActions: string[];
+  }>;
+}

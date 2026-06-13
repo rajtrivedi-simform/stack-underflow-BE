@@ -1,28 +1,49 @@
-import { z } from 'zod';
+import Joi from 'joi';
 
-const gapBridgeStepSchema = z.object({
-  condition: z.string(),
-  steps: z.array(z.string()),
-  effort: z.enum(['instant', 'easy', 'moderate', 'complex']),
-  cost: z.string(),
+const gapBridgeStepSchema = Joi.object({
+  condition: Joi.string().required(),
+  steps: Joi.array().items(Joi.string()).required(),
+  effort: Joi.string().valid('instant', 'easy', 'moderate', 'complex').required(),
+  cost: Joi.string().required(),
 });
 
-export const aiMatchResultSchema = z.object({
-  matches: z.array(
-    z.object({
-      schemeId: z.string(),
-      status: z.string(),
-      matchScore: z.number(),
-      confidenceScore: z.number(),
-      explanation: z.string(),
-      metCriteria: z.array(z.string()),
-      unmetCriteria: z.array(z.string()),
-      gapBridgeSteps: z.array(gapBridgeStepSchema),
-      remediationCost: z.string().optional(),
-      remediationEffort: z.string().optional(),
-      unlocksOtherSchemes: z.array(z.string()).optional(),
-    }),
-  ),
+export const aiMatchResultSchema = Joi.object({
+  matches: Joi.array()
+    .items(
+      Joi.object({
+        schemeId: Joi.string().required(),
+        status: Joi.string().required(),
+        matchScore: Joi.number().required(),
+        confidenceScore: Joi.number().required(),
+        explanation: Joi.string().required(),
+        metCriteria: Joi.array().items(Joi.string()).required(),
+        unmetCriteria: Joi.array().items(Joi.string()).required(),
+        gapBridgeSteps: Joi.array().items(gapBridgeStepSchema).required(),
+        remediationCost: Joi.string().optional(),
+        remediationEffort: Joi.string().optional(),
+        unlocksOtherSchemes: Joi.array().items(Joi.string()).optional(),
+      }),
+    )
+    .required(),
 });
 
-export type AiMatchResult = z.infer<typeof aiMatchResultSchema>;
+export interface AiMatchResult {
+  matches: Array<{
+    schemeId: string;
+    status: string;
+    matchScore: number;
+    confidenceScore: number;
+    explanation: string;
+    metCriteria: string[];
+    unmetCriteria: string[];
+    gapBridgeSteps: Array<{
+      condition: string;
+      steps: string[];
+      effort: 'instant' | 'easy' | 'moderate' | 'complex';
+      cost: string;
+    }>;
+    remediationCost?: string;
+    remediationEffort?: string;
+    unlocksOtherSchemes?: string[];
+  }>;
+}
